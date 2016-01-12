@@ -156,19 +156,17 @@
     }
 
     function click(e) {
-        console.log("X: " + e.offsetX + " Y: " + e.offsetY);
+        var x = Math.floor(e.offsetX / tileW);
+        var y = Math.floor(e.offsetY / tileH);
 
-        var x = Math.round(e.offsetX / tileW);
-        var y = Math.round(e.offsetY / tileH);
-
-        console.log("x: " + x + " y: " + y);
+        var a;
 
         if(laserActive) {
-            var a = new Laser(x, y);
+            a = new Laser(x, y);
             towers.push(a);
 
         } else if (cannonActive) {
-            var a = new Cannon(x, y);
+            a = new Cannon(x, y);
             towers.push(a);
         }
 
