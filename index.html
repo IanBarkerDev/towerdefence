@@ -33,32 +33,33 @@
 
     var towers = [];
 
-    var Path = function(x, y) {
+    var Path = function (x, y) {
+        this.name = "Path";
         this.x = x;
         this.y = y;
     };
 
     var grid = new Array(canvas.width / tileW);
-    for(var i = 0; i < grid.length; i ++) {
+    for (var i = 0; i < grid.length; i++) {
         grid[i] = new Array(canvas.height / tileH);
     }
 
-    for(var j = 0; j < grid.length; j ++) {
-        grid[j][7] = true;
+    for (var j = 0; j < grid.length; j++) {
+        grid[j][7] = new Path(j, 7);
     }
 
-    var Turret = function(x, y) {
+    var Turret = function (x, y) {
         this.name = "";
         this.x = x;
         this.y = y;
     };
 
-    Turret.prototype.upgrade = function() {
+    Turret.prototype.upgrade = function () {
         this.dmg = this.dmg * 2;
         this.cost = this.cost * 2;
     };
 
-    var Laser = function() {
+    var Laser = function () {
         Turret.apply(this, arguments);
         this.name = "Laser";
         this.dmg = 10;
@@ -67,7 +68,7 @@
 
     Laser.prototype = Object.create(Turret.prototype);
 
-    var Cannon = function() {
+    var Cannon = function () {
         Turret.apply(this, arguments);
         this.name = "Cannon";
         this.dmg = 25;
@@ -76,7 +77,7 @@
 
     Cannon.prototype = Object.create(Turret.prototype);
 
-    var IceCannon = function() {
+    var IceCannon = function () {
         Cannon.apply(this, arguments);
         this.name = "Ice Cannon";
         this.dmg = 0;
@@ -85,7 +86,7 @@
 
     IceCannon.prototype = Object.create(Cannon.prototype);
 
-    var FireCannon = function() {
+    var FireCannon = function () {
         Cannon.apply(this, arguments);
         this.name = "Fire Cannon";
         this.dmg = 50;
@@ -106,37 +107,29 @@
         }
     }
 
-    function drawPath(path) {
-        for(var i = 0; i < path.length; i ++) {
-            for(var j = 0; j < path[i].length; j ++) {
-                if(path[i][j] === true) {
-                    ctx.beginPath();
-                    ctx.fillRect(i * tileW, j * tileH, tileW, tileH);
-                    ctx.fillStyle = "brown";
-                    ctx.fill();
-                    ctx.closePath();
-                }
+    function drawGrid(grid) {
+        for (var i = 0; i < grid.length; i++) {
+            for (var j = 0; j < grid[i].length; j++) {
+                console.log(grid[i][j]);
+                var color = getColor(grid[i][j]);
+                ctx.beginPath();
+                ctx.fillRect(i * tileW, j * tileH, tileW, tileH);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.closePath();
             }
         }
     }
 
-    function drawTowers(towers) {
-        for (var i = 0; i < towers.length; i++) {
-            var obj = towers[i];
-            var color = getColor(obj);
-            ctx.beginPath();
-            ctx.fillRect(obj.x * tileW, obj.y * tileH, tileW, tileH);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.closePath();
-        }
-    }
+
 
     function getColor(obj) {
         if (obj === undefined) {
             return "lightgray";
         }
         switch (obj.name) {
+            case "Path":
+                return "brown";
             case "Laser":
                 return "red";
             case "Cannon":
@@ -150,8 +143,7 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawTowers(towers);
-        drawPath(grid);
+        drawGrid(grid);
         drawGridOutline();
     }
 
@@ -161,21 +153,23 @@
 
         var a;
 
-        if(laserActive) {
+        if (laserActive) {
             a = new Laser(x, y);
-            towers.push(a);
 
         } else if (cannonActive) {
             a = new Cannon(x, y);
-            towers.push(a);
         }
+
+        grid[x][y] = a;
+
+        draw();
 
     }
 
 
-    canvas.addEventListener("click", click, false)
+    canvas.addEventListener("click", click, false);
 
-    setInterval(draw, 10);
+    //setInterval(draw, 10);
 </script>
 </body>
 </html>
