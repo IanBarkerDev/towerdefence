@@ -10,7 +10,15 @@
     <button class="button" id="Laser" type="button" onclick="laserClick()">Laser</button>
     <button class="button" id="Cannon" type="button" onclick="cannonClick()">Cannon</button>
 </div>
-<script>
+<!--<script>
+    Array.prototype.printGrid = function() {
+        for(var i = 0; i < this.length; i ++) {
+            for(var j = 0; j < this[i].length; j ++) {
+                (this[i][j] ? console.log("[" + i + "] [" + j + "] = " + this[i][j].name) : null);
+            }
+        }
+    };
+
     var laserActive = false;
     var cannonActive = false;
 
@@ -23,8 +31,7 @@
         cannonActive = true;
         laserActive = false;
     }
-</script>
-<script>
+
     var canvas = document.getElementById("game");
     var ctx = canvas.getContext("2d");
 
@@ -33,26 +40,36 @@
 
     var towers = [];
 
-    var Path = function (x, y) {
-        this.name = "Path";
-        this.x = x;
-        this.y = y;
-    };
+
 
     var grid = new Array(canvas.width / tileW);
     for (var i = 0; i < grid.length; i++) {
         grid[i] = new Array(canvas.height / tileH);
     }
 
-    for (var j = 0; j < grid.length; j++) {
-        grid[j][7] = new Path(j, 7);
-    }
+    //for (var j = 0; j < grid.length; j++) {
+    //    grid[j][7] = new Path(j, 7);
+    //}
 
-    var Turret = function (x, y) {
-        this.name = "";
+    var Tile = function(x, y) {
         this.x = x;
         this.y = y;
     };
+
+    var Turret = function () {
+        Tile.apply(this, arguments);
+        this.name = "Turret";
+    };
+
+    Turret.prototype = Object.create(Tile.prototype);
+
+    var Path = function (x, y) {
+        Tile.apply(this, arguments);
+        this.name = "Path";
+        this.color = "brown";
+    };
+
+    Path.prototype = Object.create(Tile.prototype);
 
     Turret.prototype.upgrade = function () {
         this.dmg = this.dmg * 2;
@@ -64,6 +81,7 @@
         this.name = "Laser";
         this.dmg = 10;
         this.cost = 5;
+        this.color = "red";
     };
 
     Laser.prototype = Object.create(Turret.prototype);
@@ -73,6 +91,7 @@
         this.name = "Cannon";
         this.dmg = 25;
         this.cost = 25;
+        this.color = "black";
     };
 
     Cannon.prototype = Object.create(Turret.prototype);
@@ -82,6 +101,7 @@
         this.name = "Ice Cannon";
         this.dmg = 0;
         this.cost = 25;
+        this.color = "blue";
     };
 
     IceCannon.prototype = Object.create(Cannon.prototype);
@@ -91,6 +111,7 @@
         this.name = "Fire Cannon";
         this.dmg = 50;
         this.cost = 25;
+        this.color = "green";
     };
 
     FireCannon.prototype = Object.create(Cannon.prototype);
@@ -108,15 +129,18 @@
     }
 
     function drawGrid(grid) {
+        //console.log(grid.printGrid());
         for (var i = 0; i < grid.length; i++) {
             for (var j = 0; j < grid[i].length; j++) {
-                console.log(grid[i][j]);
-                var color = getColor(grid[i][j]);
-                ctx.beginPath();
-                ctx.fillRect(i * tileW, j * tileH, tileW, tileH);
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.closePath();
+                var obj = grid[i][j];
+                if(obj) {
+                    var color = getColor(obj);
+                    ctx.beginPath();
+                    ctx.fillRect(obj.x * tileW, obj.y * tileH, tileW, tileH);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.closePath();
+                }
             }
         }
     }
@@ -150,7 +174,6 @@
     function click(e) {
         var x = Math.floor(e.offsetX / tileW);
         var y = Math.floor(e.offsetY / tileH);
-
         var a;
 
         if (laserActive) {
@@ -169,7 +192,230 @@
 
     canvas.addEventListener("click", click, false);
 
-    //setInterval(draw, 10);
+    setInterval(draw, 10);
+</script>-->
+
+<script>
+    var canvas = document.getElementById("game");
+    var ctx = canvas.getContext("2d");
+
+    var tileH = 40;
+    var tileW = 40;
+
+    var type = -1;
+
+    var towers = [], enemies = [], paths = [];
+
+    canvas.addEventListener("click", click, false);
+
+
+    function laserClick() {
+        type = 0;
+    }
+
+    function cannonClick() {
+        type = 1;
+    }
+
+    function click(e) {
+        var x = Math.floor(e.offsetX / tileW);
+        var y = Math.floor(e.offsetY / tileH);
+
+        // check if location clicked contains something already
+        var isTower = false, isEnemy = false, isPath = false;
+        var i, obj;
+
+        for(i = 0; i < towers.length; i ++) {
+            obj = towers[i];
+            if(obj.x == x && obj.y == y) {
+                console.log(obj.toString());
+                isTower = true;
+            }
+        }
+
+        for(i = 0; i < paths.length; i ++) {
+            obj = paths[i];
+            if(obj.x == x && obj.y ==y) {
+                isPath = true;
+            }
+        }
+
+        for(i = 0; i < enemies.length; i ++) {
+            obj = enemies[i];
+            if(obj.x == x && obj.y ==y) {
+                isEnemy = true;
+            }
+        }
+
+        if(!isTower && !isEnemy && !isPath) {
+            if(type == 0) {
+                var a = new Fast(x, y);
+                towers.push(a);
+            } else if (type == 1) {
+                var b = new Slow(x, y);
+                towers.push(b);
+            }
+        }
+
+        draw();
+    }
+
+    // on load do setup
+    (function initialDraw() {
+        var Path = function(x, y) {
+            this.x = x;
+            this.y = y;
+            this.color = "brown";
+        };
+
+        for(var i = 0; i < 15; i ++) {
+            paths.push(new Path(i, 2));
+        }
+
+        paths.push(new Path(14, 3));
+
+        drawTowers(towers);
+        drawPath(paths);
+        drawEnemies(enemies);
+        drawGrid();
+    }());
+
+    function draw() {
+
+        if(enemies.length == 0) {
+            newWave();
+        }
+
+        moveEnemiesForward(enemies);
+
+        clearGrid();
+        drawTowers(towers);
+        drawPath(paths);
+        drawEnemies(enemies);
+        drawGrid();
+    }
+
+    function moveEnemiesForward(e) {
+        for(var i = 0; i < e.length; i ++) {
+            e[i].pathNum ++;
+            if(e[i].pathNum > paths.length - 1) {
+                //TODO: lose a life
+                e.splice(i, 1);
+            }
+        }
+    }
+
+    function clearGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawGrid() {
+        for (var i = 0; i < canvas.width; i += tileW) {
+            for (var j = 0; j < canvas.height; j += tileH) {
+                ctx.beginPath();
+                ctx.strokeStyle = "#000";
+                ctx.strokeRect(i, j, tileW, tileH);
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+    }
+
+    function drawTowers(t) {
+        for(var i = 0; i < t.length; i ++) {
+            var obj = t[i];
+            drawRectangle(obj.x, obj.y, tileW, tileH, obj.color, 0);
+        }
+    }
+
+    function drawEnemies(e) {
+        for(var i = 0; i < e.length; i ++) {
+            var obj = e[i];
+            if(obj.pathNum >= 0) {
+                if(obj.name == "Square") {
+                    drawRectangle(paths[obj.pathNum].x, paths[obj.pathNum].y , tileW, tileH, obj.color, 15);
+                }
+            }
+
+        }
+    }
+
+    function drawPath(p) {
+        for(var i = 0; i < p.length; i ++) {
+            var obj = p[i];
+            drawRectangle(obj.x, obj.y, tileW, tileH, obj.color, 0);
+        }
+    }
+
+    function drawRectangle(x, y, tileW, tileH, color, inset) {
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.fillRect(x * tileW + inset/2, y * tileH + inset/2, tileW - inset, tileH - inset);
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    var Tower = function(x, y) {
+        this.x = x;
+        this.y = y;
+    };
+
+    Tower.prototype.toString = function() {
+        return this.name;
+    };
+
+    var Fast = function() {
+        Tower.apply(this, arguments);
+        this.name = "Fast";
+        this.color = "red";
+        this.dmg = 10;
+        this.range = 100;
+        this.rate = 1000;
+    };
+
+    Fast.prototype = Object.create(Tower.prototype);
+
+    var Slow = function(x, y, dmg, range, rate) {
+        Tower.call(this, x, y);
+        this.name = "Slow";
+        this.color = "blue";
+        this.dmg = dmg || 30;
+        this.range = range || 70;
+        this.rate = rate || 2000;
+    };
+
+    Slow.prototype = Object.create(Tower.prototype);
+
+    var Enemy = function(x, y, p) {
+        this.x = x;
+        this.y = y;
+        this.pathNum = p || -1;
+    };
+
+    var Square = function(x, y, p,  hp, speed) {
+        Enemy.call(this, x, y, p);
+        this.name = "Square";
+        this.color = "green";
+        this.hp = hp || 50;
+        this.speed = speed || 100;
+    };
+
+    Square.prototype = Object.create(Enemy.prototype);
+
+    function newWave() {
+        for(var i = 0; i < 5; i ++) {
+            enemies.push(new Square(0, 0, -i - 1));
+        }
+    }
+
+    var Path = function(x, y) {
+        this.x = x;
+        this.y = y;
+        this.color = "brown";
+    };
+
+    setInterval(draw, 500);
 </script>
+
 </body>
 </html>
